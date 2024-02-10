@@ -38,6 +38,9 @@ class Player:
                        for n in range(self.animation_frames)]
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
+        self.collider_height = 20
+        self.collider_width = 30
+        self.collider_offset = 20
         self.rect = self.generate_rect()
 
     def move(self):
@@ -70,7 +73,7 @@ class Player:
             self.animation_timer = 0
             
     def generate_rect(self):
-        return (self.pos[0] - self.width//2, self.pos[1] - self.height//2, self.width, self.height)
+        return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
 
 class Enemy:
     def __init__(self,pos):
@@ -156,7 +159,6 @@ while True:
     for event in pygame.event.get():
 
         if event.type == pygame.KEYDOWN:
-
             if event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 quit()
