@@ -1,6 +1,7 @@
 import pygame
 import math
 import time
+import random
 
 clock = pygame.time.Clock()
 res = (800,500)
@@ -71,6 +72,23 @@ class Player:
     def generate_rect(self):
         return (self.pos[0] - self.width//2, self.pos[1] - self.height//2, self.width, self.height)
 
+class Enemy:
+    def __init__(self,pos):
+        self.pos = [pos[0], pos[1]]
+        self.speed = 3
+        self.animation_frames = 5
+        self.animation_timer = 0
+        self.animation_speed = 2
+        self.images = [pygame.transform.scale(pygame.image.load("assets/enemy_frames/enemy_walk_frame" + str(n+1)+ ".png"),(64,128)) \
+                       for n in range(self.animation_frames)]
+        self.width = self.images[0].get_width()
+        self.height = self.images[0].get_height()
+        self.rect = self.generate_rect()
+    def move(self):
+        self.animation_timer += dt
+            
+    def generate_rect(self):
+        return (self.pos[0] - self.width//2, self.pos[1] - self.height//2, self.width, self.height)
 class Gun:
     def __init__(self, owner):
         self.owner = owner
@@ -115,6 +133,9 @@ class WallTile:
         
 
 player = Player((100,100))
+num_enemies = random.randint(0,6)
+enemy_coords = [(random.randint(50,450),random.randint(50,450)) for x in range(1,6)]
+enemies = [Enemy((enemy_coords[x-1])) for x in range(1,num_enemies)]
 gun = Gun(player)
 
 floor_tiles = []
@@ -166,6 +187,10 @@ while True:
 
     mouse_pos = pygame.mouse.get_pos()
     gun.update(mouse_pos)
+
+    for enemy in enemies:
+        screen.blit(enemy.images[int(enemy.animation_timer* enemy.animation_speed * enemy.animation_frames)% enemy.animation_frames], \
+            (enemy.pos[0] - enemy.width//2, enemy.pos[1] - enemy.height//2))
 
     screen.blit(gun.image, (gun.pos[0] - gun.width//2, gun.pos[1] - gun.height//2))
     
