@@ -272,8 +272,8 @@ class Prop:
             self.image = pygame.image.load("assets/walls/back_wall.png")
         else:
             self.image = pygame.transform.scale(pygame.image.load("assets/walls/side_wall.png"), (20,64))
-        self.height = self.image.get_width()
-        self.width = self.image.get_height()
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
 
         if id in [0,1,2]:
             self.collider_width = 20
@@ -322,11 +322,11 @@ for i in range(res[0]//32 + 1):
         floor_tiles.append(FloorTile((16 + 32*i ,16 + 32*j),pygame.image.load("assets/carpet2.png")))
 
 for i in range(res[0]//32 + 1):
-    props.append(Prop((32 + 32*i, 15), 60, 2))
+    props.append(Prop((16 + 32*i, 15), 60, 2))
 
 for i in range(res[1]//64 + 1):
-    props.append(Prop((50, 64*i), 60, 3))
-    props.append(Prop((res[0] - 50, 64*i), 60, 3))
+    props.append(Prop((50, 32 + 64*i), 60, 3))
+    props.append(Prop((res[0] - 50, 32 + 64*i), 60, 3))
 
 bullets = []
 
@@ -394,8 +394,6 @@ while True:
     for prop in props:
         screen.blit(prop.image, (prop.pos[0] - prop.width//2, prop.pos[1] - prop.height//2))
 
-    pygame.draw.circle(screen, "red", (50,50), 5)
-    pygame.draw.circle(screen, "red", (res[0] - 50, 50), 5)
 
     for bullet in bullets:
         screen.blit(bullet.image, (bullet.pos[0] - bullet.width//2, bullet.pos[1] - bullet.height//2))
