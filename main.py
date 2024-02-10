@@ -41,8 +41,16 @@ class Player:
         self.collider_height = 20
         self.collider_width = 30
         self.collider_offset = 20
+
+        self.collider2_height = 50
+        self.collider2_width = 25
+        self.collider2_offset = 0
+        
         self.rect = self.generate_rect()
+        self.rect2 = self.generate_rect2()
         self.gun = None
+        self.max_health = 1000
+        self.health = self.max_health
 
     def set_gun(self, gun):
         self.gun = gun
@@ -60,6 +68,7 @@ class Player:
 
         self.pos[0] += x_move * self.speed
         self.rect = self.generate_rect()
+        self.rect2 = self.generate_rect2()
 
         if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]):
             self.pos[0] -= x_move * self.speed
@@ -79,6 +88,9 @@ class Player:
     def generate_rect(self):
         return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
 
+    def generate_rect2(self):
+        return (self.pos[0] - self.collider2_width//2, self.pos[1] - self.collider2_height//2 + self.collider2_offset, self.collider2_width, self.collider2_height)
+    
 class Enemy:
     def __init__(self,pos):
         self.pos = [pos[0], pos[1]]
@@ -90,7 +102,20 @@ class Enemy:
                        for n in range(self.animation_frames)]
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
+
+        self.collider_height = 20
+        self.collider_width = 30
+        self.collider_offset = 20
+
+        self.collider2_height = 50
+        self.collider2_width = 25
+        self.collider2_offset = 0
+        
         self.rect = self.generate_rect()
+        self.rect2 = self.generate_rect2()
+        self.max_health = 100
+        self.health = self.max_health
+        
 
     def set_gun(self, gun):
         self.gun = gun
@@ -103,7 +128,10 @@ class Enemy:
         self.animation_timer += dt
             
     def generate_rect(self):
-        return (self.pos[0] - self.width//2, self.pos[1] - self.height//2, self.width, self.height)
+        return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
+
+    def generate_rect2(self):
+        return (self.pos[0] - self.collider2_width//2, self.pos[1] - self.collider2_height//2 + self.collider2_offset, self.collider2_width, self.collider2_height)
 
 class Gun:
     def __init__(self, owner):
@@ -116,11 +144,12 @@ class Gun:
         self.ry = 20
         self.rx = 30
         self.direction = 0
-        self.bullet_speed = 10
+        self.bullet_speed = 7
         self.fire_rate = 10
         self.fire_time = 1 / self.fire_rate
         self.fire_timer = 0
         self.innacuracy = 5
+        self.bullet_damage = 10
 
     def update(self, target_pos):
         angle = math.atan2(target_pos[1] - self.owner.pos[1], target_pos[0] - self.owner.pos[0])
@@ -141,16 +170,17 @@ class Gun:
     def shoot(self):
         if self.fire_timer == 0:
             direction = self.direction + math.radians(random.gauss(0, self.innacuracy))
-            bullet = Bullet(self, self.pos, direction, self.bullet_speed)
+            bullet = Bullet(self, self.pos, direction, self.bullet_speed, self.bullet_damage)
             bullets.append(bullet)
             self.fire_timer = self.fire_time
 
 class Bullet:
-    def __init__(self, owner, pos, direction, speed):
+    def __init__(self, owner, pos, direction, speed, damage):
         self.owner = owner
         self.pos = [pos[0], pos[1]]
         self.direction = direction
         self.speed = speed
+        self.damage = damage
         if self.owner.owner == player: self.image_unrotated = pygame.image.load("assets/friendly_bullet.png")
         else: self.image_unrotated = pygame.image.load("assets/bullet.png")
         
@@ -161,14 +191,24 @@ class Bullet:
         self.collider_width = 10
         self.rect = self.generate_rect()
         
+        
     def update(self):
         self.pos[0] += self.speed * math.cos(self.direction)
         self.pos[1] += self.speed * math.sin(self.direction)
         self.rect = self.generate_rect()
         x, y = self.pos
+
+        for enemy in enemies:
+            if rectangles_overlap(self.rect, enemy.rect2):
+                enemy.health -= self.damage
+
+        if rectangles_overlap(self.rect, player.rect2):
+            player.health -= self.damage
+        
         if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
             bullets.remove(self)
             del self
+        
         
     def generate_rect(self):
         return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2, self.collider_width, self.collider_height)
@@ -224,10 +264,13 @@ d_pressed = False
 dt = 0
 
 while True:
+    pygame.event.set_grab(True)
+    
     for event in pygame.event.get():
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
+                pygame.event.set_grab(False)
                 pygame.quit()
                 quit()
 
@@ -253,6 +296,15 @@ while True:
 
     for bullet in bullets:
         bullet.update()
+
+    for enemy in enemies:
+        if enemy.health <= 0:
+            enemies.remove(enemy)
+
+    if player.health <= 0:
+        print("dead")
+
+    # display
 
     screen.fill("black")
     
