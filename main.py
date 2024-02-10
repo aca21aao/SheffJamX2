@@ -27,26 +27,6 @@ def rectangles_overlap(rect1, rect2):
         rect1_top < rect2_bottom and
         rect1_bottom > rect2_top)
 
-class Prop:
-    def __init__(self,pos,hp,id):
-        self.pos = [pos[0],pos[1]]
-        self.hp = hp
-        if id == 0:
-            self.image = pygame.image.load("assets/props/tree.png")
-        else:
-            self.image = pygame.image.load("assets/props/column.png")
-        self.height = self.image.get_width()
-        self.width = self.image.get_height()
-        self.collider_offset = 0
-        self.collider_height = self.height /2
-        self.collider_width = self.width - 5
-        self.rect = self.generate_rect()
-
-
-    def generate_rect(self):
-        return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
-
-
 class Player:
     def __init__(self, pos):
         self.pos = [pos[0], pos[1]]
@@ -275,8 +255,6 @@ for enemy in enemies:
     enemy.set_gun(Gun(enemy))
 
 
-props = [Prop((200,100),100,0)]
-
 bullets = []
 
 floor_tiles = []
@@ -363,7 +341,5 @@ while True:
         enemy.gun.update(player.pos)
         screen.blit(enemy.gun.image, (enemy.gun.pos[0] - enemy.gun.width//2, enemy.gun.pos[1] - enemy.gun.height//2))
     
-    for prop in props:
-        screen.blit(prop.image,(prop.pos[0] - prop.width//2, prop.pos[1] - prop.height //2))
     pygame.display.update()
     dt = clock.tick(60)/1000
