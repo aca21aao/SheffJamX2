@@ -265,9 +265,11 @@ class Prop:
         self.hp = hp
         self.id = id
         if id == 0:
-            self.image = pygame.image.load("assets/props/tree.png")
+            unscaled_image = pygame.image.load("assets/props/tree.png")
+            self.image = pygame.transform.scale(unscaled_image, (unscaled_image.get_width()*1.5, unscaled_image.get_height()*1.5))
         elif id == 1:
-            self.image = pygame.image.load("assets/props/column.png")
+            unscaled_image = pygame.image.load("assets/props/column.png")
+            self.image = pygame.transform.scale(unscaled_image, (unscaled_image.get_width()*1.5, unscaled_image.get_height()*1.5))
         elif id == 2:
             self.image = pygame.image.load("assets/walls/back_wall.png")
         else:
@@ -275,14 +277,33 @@ class Prop:
         self.width = self.image.get_width()
         self.height = self.image.get_height()
 
-        if id in [0,1,2]:
+        if id == 0:
+            self.collider_width = 30
+            self.collider_height = 30
+            self.collider_offset = 60
+
+            self.collider2_width = self.image.get_width() - 20 
+            self.collider2_height = self.image.get_height()
+            self.collider2_offset = 0
+
+        elif id == 1:
+            self.collider_width = 40
+            self.collider_height = 30
+            self.collider_offset = 60
+
+            self.collider2_width = self.image.get_width() - 10 
+            self.collider2_height = self.image.get_height()
+            self.collider2_offset = 0
+            
+        elif id == 2:
             self.collider_width = 20
             self.collider_height = 20
             self.collider_offset = 40
 
             self.collider2_width = self.image.get_width()
             self.collider2_height = self.image.get_height()
-            self.collider2_offset = 40
+            self.collider2_offset = 0
+            
         else:
             self.collider_width = self.image.get_width()
             self.collider_height = self.image.get_height()
@@ -290,7 +311,7 @@ class Prop:
 
             self.collider2_width = self.image.get_width()
             self.collider2_height = self.image.get_height()
-            self.collider2_offset = 40
+            self.collider2_offset = 0
             
         self.rect = self.generate_rect()
         self.rect2 = self.generate_rect2()
@@ -325,8 +346,8 @@ for i in range(res[0]//32 + 1):
     props.append(Prop((16 + 32*i, 15), 60, 2))
 
 for i in range(res[1]//64 + 1):
-    props.append(Prop((50, 32 + 64*i), 60, 3))
-    props.append(Prop((res[0] - 50, 32 + 64*i), 60, 3))
+    props.append(Prop((10, 32 + 64*i), 60, 3))
+    props.append(Prop((res[0] - 10, 32 + 64*i), 60, 3))
 
 bullets = []
 
