@@ -41,6 +41,10 @@ class Player:
         self.collider_width = 30
         self.collider_offset = 20
         self.rect = self.generate_rect()
+        self.gun = None
+
+    def set_gun(self, gun):
+        self.gun = gun
 
     def move(self):
         x_move = 0
@@ -83,10 +87,13 @@ class Gun:
         self.height = self.image.get_height()
         self.ry = 20
         self.rx = 30
+        self.direction = 0
+        self.bullet_speed = 10
 
     def update(self, target_pos):
         angle = math.atan2(target_pos[1] - self.owner.pos[1], target_pos[0] - self.owner.pos[0])
         self.pos = [self.owner.pos[0] + self.rx * math.cos(angle), self.owner.pos[1] + self.ry * math.sin(angle)]
+        self.direction = angle
         deg_angle = math.degrees(angle)
         if deg_angle % 360 > 270 or deg_angle % 360 <= 90:
             self.image = pygame.transform.rotate(self.unrotated_image, -deg_angle)
@@ -94,6 +101,24 @@ class Gun:
             self.image = pygame.transform.rotate(pygame.transform.flip(self.unrotated_image, False, True), -deg_angle)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
+
+    def shoot(self):
+        bullet = Bullet(self.pos, self.direction, self.bullet_speed)
+        bullets.append(bullet)
+
+class Bullet:
+    def __init__(self, pos, direction, speed):
+        self.image = pygame.image.load("assets/bullet.png")
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.pos = [pos[0], pos[1]]
+        self.direction = direction
+        self.speed = speed
+        
+    def update(self):
+        self.pos[0] += self.speed * math.cos(self.direction)
+        self.pos[1] += self.speed * math.sin(self.direction)
+        
         
 
 class FloorTile:
@@ -118,7 +143,8 @@ class WallTile:
         
 
 player = Player((100,100))
-gun = Gun(player)
+player.set_gun(Gun(player))
+bullets = []
 
 floor_tiles = []
 for i in range(res[0]//32):
@@ -153,7 +179,14 @@ while True:
             elif event.key == pygame.K_s: s_pressed = False
             elif event.key == pygame.K_d: d_pressed = False
 
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                player.gun.shoot()
+
     player.move()
+
+    for bullet in bullets:
+        bullet.update()
 
     screen.fill("black")
     
@@ -166,10 +199,13 @@ while True:
     screen.blit(player.images[int(player.animation_timer * player.animation_speed * player.animation_frames) % player.animation_frames], \
                 (player.pos[0] - player.width//2, player.pos[1] - player.height//2))
 
-    mouse_pos = pygame.mouse.get_pos()
-    gun.update(mouse_pos)
+    for bullet in bullets:
+        screen.blit(bullet.image, (bullet.pos[0] - bullet.width//2, bullet.pos[1] - bullet.height//2))
 
-    screen.blit(gun.image, (gun.pos[0] - gun.width//2, gun.pos[1] - gun.height//2))
+    mouse_pos = pygame.mouse.get_pos()
+    player.gun.update(mouse_pos)
+
+    screen.blit(player.gun.image, (player.gun.pos[0] - player.gun.width//2, player.gun.pos[1] - player.gun.height//2))
     
     pygame.display.update()
     dt = clock.tick(60)/1000
