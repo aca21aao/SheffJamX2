@@ -249,7 +249,7 @@ player.set_gun(Gun(player))
 
 num_enemies = random.randint(1,6)
 enemy_coords = [(random.randint(50,450),random.randint(50,450)) for x in range(1,6)]
-enemies = [Enemy((enemy_coords[x-1])) for x in range(1,num_enemies)]
+enemies = [Enemy((enemy_coords[x-1])) for x in range(num_enemies)]
 
 for enemy in enemies:
     enemy.set_gun(Gun(enemy))
