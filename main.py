@@ -2,10 +2,13 @@ import random
 import pygame
 import math
 import time
+import ctypes
 
 clock = pygame.time.Clock()
 res = (800,500)
 screen = pygame.display.set_mode(res)
+
+ctypes.windll.user32.SetProcessDPIAware()
 
 pygame.mouse.set_visible(False)
 
@@ -39,7 +42,7 @@ class Player:
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
         self.collider_height = 20
-        self.collider_width = 30
+        self.collider_width = 20
         self.collider_offset = 20
 
         self.collider2_height = 50
@@ -70,15 +73,13 @@ class Player:
         self.rect = self.generate_rect()
         self.rect2 = self.generate_rect2()
 
-        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or \
-           any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
+        if any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
             self.pos[0] -= x_move * self.speed
             
         self.pos[1] += y_move * self.speed
         self.rect = self.generate_rect()
 
-        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or \
-           any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
+        if any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
             self.pos[1] -= y_move * self.speed
 
         self.moving = x_move or y_move
@@ -112,7 +113,7 @@ class Enemy:
         self.height = self.images[0].get_height()
 
         self.collider_height = 20
-        self.collider_width = 30
+        self.collider_width = 20
         self.collider_offset = 20
 
         self.collider2_height = 50
@@ -229,7 +230,7 @@ class Bullet:
                     dead = True
                     break
         
-        if not dead and any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
+        if x <= 0 or y <= 0 or x > res[0] or y > res[1]:
             bullets.remove(self)
             del self
             dead = True
@@ -247,7 +248,7 @@ class FloorTile:
         self.width = self.image.get_width()
         self.height = self.image.get_height()
 
-class WallTile:
+class Wall:
     def __init__(self, pos, image):
         self.pos = [pos[0], pos[1]]
         self.image = image
@@ -262,22 +263,35 @@ class Prop:
     def __init__(self, pos, hp, id):
         self.pos = [pos[0], pos[1]]
         self.hp = hp
+        self.id = id
         if id == 0:
             self.image = pygame.image.load("assets/props/tree.png")
-        else:
+        elif id == 1:
             self.image = pygame.image.load("assets/props/column.png")
+        elif id == 2:
+            self.image = pygame.image.load("assets/walls/back_wall.png")
+        else:
+            self.image = pygame.transform.scale(pygame.image.load("assets/walls/side_wall.png"), (20,64))
         self.height = self.image.get_width()
         self.width = self.image.get_height()
-        
-        self.collider_height = 20
-        self.collider_width = 30
-        self.collider_offset = 40
 
-        self.collider2_width = self.image.get_width()
-        self.collider2_height = self.image.get_height()
-        self.collider2_offset = 0
-        
-        
+        if id in [0,1,2]:
+            self.collider_width = 20
+            self.collider_height = 20
+            self.collider_offset = 40
+
+            self.collider2_width = self.image.get_width()
+            self.collider2_height = self.image.get_height()
+            self.collider2_offset = 40
+        else:
+            self.collider_width = self.image.get_width()
+            self.collider_height = self.image.get_height()
+            self.collider_offset = 40
+
+            self.collider2_width = self.image.get_width()
+            self.collider2_height = self.image.get_height()
+            self.collider2_offset = 40
+            
         self.rect = self.generate_rect()
         self.rect2 = self.generate_rect2()
         
@@ -292,7 +306,7 @@ player.set_gun(Gun(player))
 
 num_enemies = random.randint(1,6)
 enemy_coords = [(random.randint(50,450),random.randint(50,450)) for x in range(1,6)]
-enemies = [Enemy((enemy_coords[x-1])) for x in range(num_enemies)]
+enemies = [Enemy((enemy_coords[x - 1])) for x in range(num_enemies)]
 
 for enemy in enemies:
     enemy.set_gun(Gun(enemy))
@@ -300,18 +314,21 @@ for enemy in enemies:
 props = []
 
 props.append(Prop((400,200),50,0))
-
 props.append(Prop((600,200),50,1))
 
-bullets = []
-
 floor_tiles = []
-for i in range(res[0]//32):
-    for j in range(res[1]//32):
+for i in range(res[0]//32 + 1):
+    for j in range(res[1]//32 + 1):
         floor_tiles.append(FloorTile((16 + 32*i ,16 + 32*j),pygame.image.load("assets/carpet2.png")))
 
-wall_tiles = []
-wall_tiles.append(WallTile((200, 200),pygame.image.load("assets/wall1.png")))
+for i in range(res[0]//32 + 1):
+    props.append(Prop((32 + 32*i, 15), 60, 2))
+
+for i in range(res[1]//64 + 1):
+    props.append(Prop((50, 64*i), 60, 3))
+    props.append(Prop((res[0] - 50, 64*i), 60, 3))
+
+bullets = []
 
 w_pressed = False
 a_pressed = False
@@ -367,9 +384,6 @@ while True:
     for floor_tile in floor_tiles:
         screen.blit(floor_tile.image, (floor_tile.pos[0] - floor_tile.width//2, floor_tile.pos[1] - floor_tile.height//2))
 
-    for wall_tile in wall_tiles:
-        screen.blit(wall_tile.image, (wall_tile.pos[0] - wall_tile.width//2, wall_tile.pos[1] - wall_tile.height//2))
-
     screen.blit(player.images[int(player.animation_timer * player.animation_speed * player.animation_frames) % player.animation_frames], \
                 (player.pos[0] - player.width//2, player.pos[1] - player.height//2))
 
@@ -378,7 +392,10 @@ while True:
             (enemy.pos[0] - enemy.width//2, enemy.pos[1] - enemy.height//2))
 
     for prop in props:
-        screen.blit(prop.image,(prop.pos[0] - prop.width//2, prop.pos[1] - prop.height//2))
+        screen.blit(prop.image, (prop.pos[0] - prop.width//2, prop.pos[1] - prop.height//2))
+
+    pygame.draw.circle(screen, "red", (50,50), 5)
+    pygame.draw.circle(screen, "red", (res[0] - 50, 50), 5)
 
     for bullet in bullets:
         screen.blit(bullet.image, (bullet.pos[0] - bullet.width//2, bullet.pos[1] - bullet.height//2))
