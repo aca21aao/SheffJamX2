@@ -49,7 +49,7 @@ class Player:
         self.rect = self.generate_rect()
         self.rect2 = self.generate_rect2()
         self.gun = None
-        self.max_health = 1000
+        self.max_health = 300
         self.health = self.max_health
 
     def set_gun(self, gun):
@@ -98,8 +98,14 @@ class Enemy:
         self.animation_frames = 5
         self.animation_timer = 0
         self.animation_speed = 2
-        self.images = [pygame.transform.scale(pygame.image.load("assets/enemy_frames/enemy_walk_frame" + str(n+1)+ ".png"),(64,128)) \
-                       for n in range(self.animation_frames)]
+        colour = random.randint(1,2)
+        if colour == 1:
+            self.images = [pygame.transform.scale(pygame.image.load("assets/enemy1_frames/enemy_walk_frame" + str(n+1)+ ".png"),(64,128)) \
+                           for n in range(self.animation_frames)]
+        else:
+            self.images = [pygame.transform.scale(pygame.image.load("assets/enemy2_frames/enemy2_walk_frame" + str(n+1)+ ".png"),(64,128)) \
+                           for n in range(self.animation_frames)]
+            
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
 
@@ -199,13 +205,15 @@ class Bullet:
         x, y = self.pos
 
         for enemy in enemies:
-            if rectangles_overlap(self.rect, enemy.rect2):
+            if rectangles_overlap(self.rect, enemy.rect2) and enemy != self.owner.owner:
                 enemy.health -= self.damage
 
-        if rectangles_overlap(self.rect, player.rect2):
+        if rectangles_overlap(self.rect, player.rect2) and player != self.owner.owner:
             player.health -= self.damage
+            bullets.remove(self)
+            del self
         
-        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
+        elif any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
             bullets.remove(self)
             del self
         
@@ -252,7 +260,7 @@ bullets = []
 floor_tiles = []
 for i in range(res[0]//32):
     for j in range(res[1]//32):
-        floor_tiles.append(FloorTile((16 + 32*i ,16 + 32*j),pygame.image.load("assets/carpet1.png")))
+        floor_tiles.append(FloorTile((16 + 32*i ,16 + 32*j),pygame.image.load("assets/carpet2.png")))
 
 wall_tiles = []
 wall_tiles.append(WallTile((200,200),pygame.image.load("assets/wall1.png")))
@@ -326,7 +334,7 @@ while True:
             (enemy.pos[0] - enemy.width//2, enemy.pos[1] - enemy.height//2))
         
     mouse_pos = pygame.mouse.get_pos()
-    player.gun.update(mouse_pos)    
+    player.gun.update(mouse_pos)
     screen.blit(player.gun.image, (player.gun.pos[0] - player.gun.width//2, player.gun.pos[1] - player.gun.height//2))
 
     for enemy in enemies:
