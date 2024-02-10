@@ -70,13 +70,15 @@ class Player:
         self.rect = self.generate_rect()
         self.rect2 = self.generate_rect2()
 
-        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]):
+        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or \
+           any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
             self.pos[0] -= x_move * self.speed
             
         self.pos[1] += y_move * self.speed
         self.rect = self.generate_rect()
 
-        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]):
+        if any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or \
+           any([rectangles_overlap(self.rect, prop.rect) for prop in props]):
             self.pos[1] -= y_move * self.speed
 
         self.moving = x_move or y_move
@@ -203,19 +205,34 @@ class Bullet:
         self.pos[1] += self.speed * math.sin(self.direction)
         self.rect = self.generate_rect()
         x, y = self.pos
-
+        
+        dead = False
         for enemy in enemies:
             if rectangles_overlap(self.rect, enemy.rect2) and enemy != self.owner.owner:
                 enemy.health -= self.damage
+                bullets.remove(self)
+                del self
+                dead = True
+                break
 
-        if rectangles_overlap(self.rect, player.rect2) and player != self.owner.owner:
+        if not dead and rectangles_overlap(self.rect, player.rect2) and player != self.owner.owner:
             player.health -= self.damage
             bullets.remove(self)
             del self
+            dead = True
+            
+        if not dead:
+            for prop in props:
+                if rectangles_overlap(self.rect, prop.rect2):
+                    bullets.remove(self)
+                    del self
+                    dead = True
+                    break
         
-        elif any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
+        if not dead and any([rectangles_overlap(self.rect, wall_tile.rect) for wall_tile in wall_tiles]) or x <= 0 or y <= 0 or x > res[0] or y > res[1]:
             bullets.remove(self)
             del self
+            dead = True
         
         
     def generate_rect(self):
@@ -241,10 +258,36 @@ class WallTile:
     def generate_rect(self):
         return (self.pos[0] - self.width//2, self.pos[1] - self.height//2, self.width, self.height)
 
-    
+class Prop:
+    def __init__(self, pos, hp, id):
+        self.pos = [pos[0], pos[1]]
+        self.hp = hp
+        if id == 0:
+            self.image = pygame.image.load("assets/props/tree.png")
+        else:
+            self.image = pygame.image.load("assets/props/column.png")
+        self.height = self.image.get_width()
+        self.width = self.image.get_height()
         
+        self.collider_height = 20
+        self.collider_width = 30
+        self.collider_offset = 40
 
-player = Player((100,100))
+        self.collider2_width = self.image.get_width()
+        self.collider2_height = self.image.get_height()
+        self.collider2_offset = 0
+        
+        
+        self.rect = self.generate_rect()
+        self.rect2 = self.generate_rect2()
+        
+    def generate_rect(self):
+        return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
+
+    def generate_rect2(self):
+        return (self.pos[0] - self.collider2_width//2, self.pos[1] - self.collider2_height//2 + self.collider2_offset, self.collider2_width, self.collider2_height)
+
+player = Player((100, 100))
 player.set_gun(Gun(player))
 
 num_enemies = random.randint(1,6)
@@ -254,6 +297,11 @@ enemies = [Enemy((enemy_coords[x-1])) for x in range(num_enemies)]
 for enemy in enemies:
     enemy.set_gun(Gun(enemy))
 
+props = []
+
+props.append(Prop((400,200),50,0))
+
+props.append(Prop((600,200),50,1))
 
 bullets = []
 
@@ -263,7 +311,7 @@ for i in range(res[0]//32):
         floor_tiles.append(FloorTile((16 + 32*i ,16 + 32*j),pygame.image.load("assets/carpet2.png")))
 
 wall_tiles = []
-wall_tiles.append(WallTile((200,200),pygame.image.load("assets/wall1.png")))
+wall_tiles.append(WallTile((200, 200),pygame.image.load("assets/wall1.png")))
 
 w_pressed = False
 a_pressed = False
@@ -325,13 +373,16 @@ while True:
     screen.blit(player.images[int(player.animation_timer * player.animation_speed * player.animation_frames) % player.animation_frames], \
                 (player.pos[0] - player.width//2, player.pos[1] - player.height//2))
 
-    for bullet in bullets:
-        screen.blit(bullet.image, (bullet.pos[0] - bullet.width//2, bullet.pos[1] - bullet.height//2))
-
-
     for enemy in enemies:
         screen.blit(enemy.images[int(enemy.animation_timer * enemy.animation_speed * enemy.animation_frames)% enemy.animation_frames], \
             (enemy.pos[0] - enemy.width//2, enemy.pos[1] - enemy.height//2))
+
+    for prop in props:
+        screen.blit(prop.image,(prop.pos[0] - prop.width//2, prop.pos[1] - prop.height//2))
+
+    for bullet in bullets:
+        screen.blit(bullet.image, (bullet.pos[0] - bullet.width//2, bullet.pos[1] - bullet.height//2))
+    
         
     mouse_pos = pygame.mouse.get_pos()
     player.gun.update(mouse_pos)
