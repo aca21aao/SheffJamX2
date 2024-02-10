@@ -91,6 +91,10 @@ class Enemy:
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
         self.rect = self.generate_rect()
+
+    def set_gun(self, gun):
+        self.gun = gun
+        
     def move(self):
         x_move = 0
         y_move = 0
@@ -112,6 +116,10 @@ class Gun:
         self.rx = 30
         self.direction = 0
         self.bullet_speed = 10
+        self.fire_rate = 10
+        self.fire_time = 1 / self.fire_rate
+        self.fire_timer = 0
+        self.pos = self.owner.pos
 
     def update(self, target_pos):
         angle = math.atan2(target_pos[1] - self.owner.pos[1], target_pos[0] - self.owner.pos[0])
@@ -125,18 +133,25 @@ class Gun:
         self.width = self.image.get_width()
         self.height = self.image.get_height()
 
+        self.fire_timer -= dt
+        if self.fire_timer < 0:
+            self.fire_timer = 0
+
     def shoot(self):
-        bullet = Bullet(self.pos, self.direction, self.bullet_speed)
-        bullets.append(bullet)
+        if self.fire_timer == 0:
+            bullet = Bullet(self.pos, self.direction, self.bullet_speed)
+            bullets.append(bullet)
+            self.fire_timer = self.fire_time
 
 class Bullet:
     def __init__(self, pos, direction, speed):
-        self.image = pygame.image.load("assets/bullet.png")
-        self.width = self.image.get_width()
-        self.height = self.image.get_height()
         self.pos = [pos[0], pos[1]]
         self.direction = direction
         self.speed = speed
+        self.image_unrotated = pygame.image.load("assets/bullet.png")
+        self.image = pygame.transform.rotate(self.image_unrotated, -math.degrees(self.direction))
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         
     def update(self):
         self.pos[0] += self.speed * math.cos(self.direction)
@@ -166,12 +181,16 @@ class WallTile:
         
 
 player = Player((100,100))
+player.set_gun(Gun(player))
 
-num_enemies = random.randint(0,6)
+num_enemies = random.randint(1,6)
 enemy_coords = [(random.randint(50,450),random.randint(50,450)) for x in range(1,6)]
 enemies = [Enemy((enemy_coords[x-1])) for x in range(1,num_enemies)]
 
-player.set_gun(Gun(player))
+for enemy in enemies:
+    enemy.set_gun(Gun(enemy))
+
+
 bullets = []
 
 floor_tiles = []
@@ -211,6 +230,9 @@ while True:
             if event.button == 1:
                 player.gun.shoot()
 
+    for enemy in enemies:
+        if random.randint(1,10) == 10: enemy.gun.shoot()
+
     player.move()
 
     for bullet in bullets:
@@ -236,8 +258,12 @@ while True:
             (enemy.pos[0] - enemy.width//2, enemy.pos[1] - enemy.height//2))
         
     mouse_pos = pygame.mouse.get_pos()
-    player.gun.update(mouse_pos)
+    player.gun.update(mouse_pos)    
     screen.blit(player.gun.image, (player.gun.pos[0] - player.gun.width//2, player.gun.pos[1] - player.gun.height//2))
+
+    for enemy in enemies:
+        enemy.gun.update(player.pos)
+        screen.blit(enemy.gun.image, (enemy.gun.pos[0] - enemy.gun.width//2, enemy.gun.pos[1] - enemy.gun.height//2))
     
     pygame.display.update()
     dt = clock.tick(60)/1000
