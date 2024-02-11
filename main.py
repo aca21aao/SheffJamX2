@@ -8,7 +8,10 @@ clock = pygame.time.Clock()
 res = (800,500)
 screen = pygame.display.set_mode(res)
 pygame.mouse.set_visible(False)
+pygame.mixer.init()
 
+gunshots = pygame.mixer.Sound("assets/music/gunshot.mp3")
+pygame.mixer.Sound.set_volume(gunshots,0.3)
 
     
 def main():
@@ -229,6 +232,8 @@ def main():
                 bullet = Bullet(self, self.pos, direction, self.bullet_speed, self.bullet_damage)
                 bullets.append(bullet)
                 self.fire_timer = self.fire_time
+                pygame.mixer.Sound.play(gunshots)
+                
 
     class Bullet:
         def __init__(self, owner, pos, direction, speed, damage):
