@@ -3,6 +3,7 @@ import pygame
 import math
 import time
 
+pygame.init()
 
 clock = pygame.time.Clock()
 res = (800,500)
@@ -11,7 +12,9 @@ pygame.mouse.set_visible(False)
 pygame.mixer.init()
 
 gunshots = pygame.mixer.Sound("assets/music/gunshot.mp3")
-pygame.mixer.Sound.set_volume(gunshots,0.3)
+pygame.mixer.Sound.set_volume(gunshots,0.02)
+
+font = pygame.font.SysFont("Arial", 15)
 
 global game_state
 
@@ -24,14 +27,22 @@ def draw_start_menu():
     screen.blit(start_button,(150,350))
     pygame.display.update() 
 
-def draw_game_over():
+def draw_game_over(went_home,score):
     pygame.font.init()
-    screen.fill((255,10,10))
-    if player.went_home:
-        font = pygame.font.SysFont('arial',70,True)
-        dead = font.render("DEAD",(255,255,255))
-    screen.blit(dead)
-    pygame.display.update()
+    screen.fill((255,0,0))
+    if went_home:
+        screen.blit(pygame.transform.scale(pygame.image.load("assets/safe.png"),(400,200)),(150,150))
+    else:
+        screen.blit(pygame.transform.scale(pygame.image.load("assets/dead.png"),(400,200)),(150,150))
+        score = "0 - You don't get anything for dying!"
+
+    font = pygame.font.SysFont('arial',40,True)
+    score = font.render("YOUR SCORE:" + str(score),True,(255,255,255))
+    screen.blit(score,(25,150))
+
+    while True:
+        pygame.display.update()
+        clock.tick(50)
     
 def main():
     game_state = "start_menu"
@@ -55,12 +66,14 @@ def main():
             rect1_bottom > rect2_top)
 
     class Player:
-        def __init__(self, pos, health):
+        def __init__(self, pos, health, score):
             self.pos = [pos[0], pos[1]]
             self.speed = 3
             self.animation_frames = 5
             self.animation_timer = 0
             self.animation_speed = 1
+            self.score = score
+            self.went_home = False
 
             self.death_animation_frames = 10
             self.death_animation_timer = 0
@@ -83,7 +96,7 @@ def main():
             self.rect = self.generate_rect()
             self.rect2 = self.generate_rect2()
             self.gun = None
-            self.max_health = 1000
+            self.max_health = 500
             if health:
                 self.health = health
             else:
@@ -95,6 +108,7 @@ def main():
             self.gun = gun
 
         def move(self):
+            
             x_move = 0
             y_move = 0
             if w_pressed: y_move -= 1
@@ -114,6 +128,7 @@ def main():
 
             for cash in cashes:
                 if rectangles_overlap(self.rect, cash.rect):
+                    self.score += cash.amount
                     cashes.remove(cash)
                 
                 
@@ -125,6 +140,7 @@ def main():
 
             for cash in cashes:
                 if rectangles_overlap(self.rect, cash.rect):
+                    self.score += cash.amount
                     cashes.remove(cash)
 
             self.moving = x_move or y_move
@@ -140,9 +156,8 @@ def main():
             if self.dead:
                 self.death_animation_timer += dt
                 if self.death_animation_timer * self.death_animation_speed > 1:
-                    player = None
-                    pygame.quit()
-                    quit()
+                    game_state = "game_over"
+                    draw_game_over(player.went_home,player.score)
                 
         def generate_rect(self):
             return (self.pos[0] - self.collider_width//2, self.pos[1] - self.collider_height//2 + self.collider_offset, self.collider_width, self.collider_height)
@@ -153,6 +168,11 @@ def main():
     class Enemy:
         def __init__(self,pos):
             self.pos = [pos[0], pos[1]]
+            
+            for prop in props:
+                while (self.pos[0] - prop.pos[0])**2 + (self.pos[1] - prop.pos[1])**2 < 40**2:
+                    self.pos[0] += 10
+                    
             self.speed = 3
             self.animation_frames = 5
             self.animation_timer = 0
@@ -356,15 +376,17 @@ def main():
             elif id == 3:
                 self.image = pygame.transform.scale(pygame.image.load("assets/walls/side_wall.png"), (20,64))
             elif id == 4:
-                self.image = pygame.image.load("assets/door_closed.png")
+                self.image = pygame.image.load("assets/b_door.png")
             elif id == 5:
                 self.image = pygame.image.load("assets/props/slot_machine1.png")
             elif id == 6:
                 self.image = pygame.image.load("assets/props/slot_machine2.png")
             elif id == 7:
                 self.image = pygame.image.load("assets/props/table.png")
-            else:
+            elif id == 8:
                 self.image = pygame.transform.scale(pygame.image.load("assets/walls/front_wall.png"), (64,20))
+            elif id == 9:
+                self.image = pygame.image.load("assets/h_door.png")
             
             self.width = self.image.get_width()
             self.height = self.image.get_height()
@@ -387,7 +409,7 @@ def main():
                 self.collider2_height = self.image.get_height()
                 self.collider2_offset = 0
                 
-            elif id in [2,4,5,6]: # back_wall
+            elif id in [2,4,5,6,9]: # back_wall
                 self.collider_width = 20
                 self.collider_height = 20
                 self.collider_offset = 40
@@ -427,6 +449,10 @@ def main():
 
     player_x = 100
     player_health = None
+    player_score = 0
+    num_enemies = 3
+
+    cash_text_image = pygame.image.load("assets/cash_text.png")
     
     while True:
 
@@ -435,23 +461,26 @@ def main():
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     game_state = "playing"
+                    
+        elif game_state == "game_over":
+            draw_game_over(player.went_home,player.score)
+            running = True
+            while running:
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN:
+                        game_state = "start_menu"
+                        running = False
         else:
                         
-            player = Player((player_x, res[1] - 50), player_health)
+            player = Player((player_x, res[1] - 50), player_health, player_score)
             player.set_gun(Gun(player))
 
-            num_enemies = random.randint(1,6)
-            enemy_coords = [(random.randint(150,res[0]-150),random.randint(250,res[1]-50)) for x in range(1,6)]
-            enemies = [Enemy((enemy_coords[x - 1])) for x in range(num_enemies)]
-
-            for enemy in enemies:
-                enemy.set_gun(Gun(enemy))
-
+            
             props = []
             cashes = []
 
             object_spawn_rect = (200,200, res[0]- 400, res[1] - 400)
-            object_spawn_rate = 0.4
+            object_spawn_rate = 0.7
             
             while random.uniform(0,1) < 0.4:
                 spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
@@ -494,7 +523,7 @@ def main():
                     door1_pos = (16 + 32*i, 32)
                     
                 elif i == door2_location:
-                    door2 = Prop((16 + 32*i, 32), 1000, 4)
+                    door2 = Prop((16 + 32*i, 32), 1000, 9)
                     props.append(door2)
                     door2_pos = (16 + 32*i, 32)
                 else:
@@ -505,6 +534,15 @@ def main():
             for i in range(res[1]//64 + 1):
                 props.append(Prop((10, 32 + 64*i), 60, 3))
                 props.append(Prop((res[0] - 10, 32 + 64*i), 60, 3))
+
+
+            num_enemies = num_enemies
+            enemy_coords = [(random.randint(150,res[0]-150),random.randint(250,res[1]-50)) for x in range(1,6)]
+            enemies = [Enemy((enemy_coords[x - 1])) for x in range(num_enemies)]
+
+            for enemy in enemies:
+                enemy.set_gun(Gun(enemy))
+
 
             bullets = []
 
@@ -580,7 +618,8 @@ def main():
                     
                 elif door2_open and player.pos[1] < 50:
                     room_completed = True
-                    #####
+                    game_state = "game_over"
+                    player.went_home = True
 
                 for bullet in bullets:
                     bullet.update()
@@ -640,12 +679,20 @@ def main():
                 screen.blit(health_bar_image, (health_bar_pos[0] - health_bar_image.get_width()//2, health_bar_pos[1] - health_bar_image.get_height()//2))
                 health_fraction = max(min(player.health/player.max_health, 1), 0)
                 screen.blit(generate_health_bar(health_fraction), (res[0] - 250,25))
+
+                pygame.draw.rect(screen, (100,100,100), (res[0]-100,80,100,40))
+                screen.blit(cash_text_image, (res[0]-95, 90))
+                
+                text_surface = font.render("$"+str(player.score), True, "white")
+                screen.blit(text_surface, (res[0]-60, 90))
                 
                 
                 pygame.display.update()
                 dt = clock.tick(60)/1000
             player_x = player.pos[0]
             player_health = player.health
+            player_score = player.score
+            num_enemies += 1
 
 if __name__ == "__main__":
     pygame.mixer.init()
