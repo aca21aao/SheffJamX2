@@ -315,8 +315,17 @@ def main():
                 self.image = pygame.image.load("assets/walls/back_wall.png")
             elif id == 3:
                 self.image = pygame.transform.scale(pygame.image.load("assets/walls/side_wall.png"), (20,64))
-            else:
+            elif id == 4:
                 self.image = pygame.image.load("assets/door_closed.png")
+            elif id == 5:
+                self.image = pygame.image.load("assets/props/slot_machine1.png")
+            elif id == 6:
+                self.image = pygame.image.load("assets/props/slot_machine2.png")
+            elif id == 7:
+                self.image = pygame.image.load("assets/props/table.png")
+            else:
+                self.image = pygame.transform.scale(pygame.image.load("assets/walls/front_wall.png"), (64,20))
+            
             self.width = self.image.get_width()
             self.height = self.image.get_height()
 
@@ -338,7 +347,7 @@ def main():
                 self.collider2_height = self.image.get_height()
                 self.collider2_offset = 0
                 
-            elif id == 2 or id == 4: # back_wall
+            elif id in [2,4,5,6]: # back_wall
                 self.collider_width = 20
                 self.collider_height = 20
                 self.collider_offset = 40
@@ -347,14 +356,25 @@ def main():
                 self.collider2_height = self.image.get_height()
                 self.collider2_offset = 0
                 
-            else: # side_wall
+            elif id == 3 or id == 8: # side_wall, front wall
                 self.collider_width = self.image.get_width()
                 self.collider_height = self.image.get_height()
-                self.collider_offset = 40
+                self.collider_offset = 0
 
                 self.collider2_width = self.image.get_width()
                 self.collider2_height = self.image.get_height()
                 self.collider2_offset = 0
+
+            else: # table
+                self.collider_width = self.image.get_width()
+                self.collider_height = self.image.get_height()
+                self.collider_offset = 0
+
+                self.collider2_width = self.image.get_width()
+                self.collider2_height = self.image.get_height()
+                self.collider2_offset = 0
+                
+                
                 
             self.rect = self.generate_rect()
             self.rect2 = self.generate_rect2()
@@ -373,7 +393,7 @@ def main():
         player.set_gun(Gun(player))
 
         num_enemies = random.randint(1,6)
-        enemy_coords = [(random.randint(50,450),random.randint(50,450)) for x in range(1,6)]
+        enemy_coords = [(random.randint(150,res[0]-150),random.randint(250,res[1]-50)) for x in range(1,6)]
         enemies = [Enemy((enemy_coords[x - 1])) for x in range(num_enemies)]
 
         for enemy in enemies:
@@ -381,8 +401,33 @@ def main():
 
         props = []
 
-        props.append(Prop((400,200),50,0))
-        props.append(Prop((600,200),50,1))
+        object_spawn_rect = (200,200, res[0]- 400, res[1] - 400)
+        object_spawn_rate = 0.4
+        
+        while random.uniform(0,1) < 0.4:
+            spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
+                         random.randint(object_spawn_rect[1], object_spawn_rect[1] + object_spawn_rect[3]))
+            props.append(Prop(spawn_pos,200,0))
+            
+        while random.uniform(0,1) < 0.4:
+            spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
+                         random.randint(object_spawn_rect[1], object_spawn_rect[1] + object_spawn_rect[3]))
+            props.append(Prop(spawn_pos,50,1))
+            
+        while random.uniform(0,1) < 0.4:
+            spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
+                        random.randint(object_spawn_rect[1], object_spawn_rect[1] + object_spawn_rect[3]))
+            props.append(Prop(spawn_pos,50,5))
+            
+        while random.uniform(0,1) < 0.4:
+            spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
+                         random.randint(object_spawn_rect[1], object_spawn_rect[1] + object_spawn_rect[3]))
+            props.append(Prop(spawn_pos,50,6))
+        
+        while random.uniform(0,1) < 0.4:
+            spawn_pos = (random.randint(object_spawn_rect[0], object_spawn_rect[0] + object_spawn_rect[2]),
+                         random.randint(object_spawn_rect[1], object_spawn_rect[1] + object_spawn_rect[3]))
+            props.append(Prop(spawn_pos,50,7))
 
         floor_tiles = []
         for i in range(res[0]//32 + 1):
@@ -398,6 +443,8 @@ def main():
                 door_pos = (16 + 32*i, 32)
             else:
                 props.append(Prop((16 + 32*i, 32), 60, 2))
+
+            props.append(Prop((16 + 32*i, res[1] - 10), 60, 8))
 
         for i in range(res[1]//64 + 1):
             props.append(Prop((10, 32 + 64*i), 60, 3))
